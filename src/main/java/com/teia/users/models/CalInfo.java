@@ -1,6 +1,7 @@
 package com.teia.users.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.teia.users.security.EncryptedStringConverter;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -14,7 +15,8 @@ public class CalInfo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "api_key", length = 255, nullable = false)
+    @Column(name = "api_key", length = 500, nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String apiKey;
 
     @Column(name = "user_id", length = 255, nullable = false)

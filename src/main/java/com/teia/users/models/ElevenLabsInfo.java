@@ -1,6 +1,7 @@
 package com.teia.users.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.teia.users.security.EncryptedStringConverter;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -17,7 +18,8 @@ public class ElevenLabsInfo {
     @Column(name = "eleven_labs_agent_id", length = 255, nullable = false)
     private String elevenLabsAgentId;
 
-    @Column(name = "eleven_labs_api_key", length = 255, nullable = false)
+    @Column(name = "eleven_labs_api_key", length = 500, nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String elevenLabsApiKey;
 
     @Column(name = "create_date", nullable = false)

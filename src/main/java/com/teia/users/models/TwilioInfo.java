@@ -1,6 +1,7 @@
 package com.teia.users.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.teia.users.security.EncryptedStringConverter;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -17,7 +18,8 @@ public class TwilioInfo {
     @Column(name = "twilio_acc_sid", length = 255, nullable = false)
     private String twilioAccSID;
 
-    @Column(name = "twilio_auth_token", length = 255, nullable = false)
+    @Column(name = "twilio_auth_token", length = 500, nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String twilioAuthToken;
 
     @Column(name = "twilio_phone_number_calls", length = 255, nullable = false)
