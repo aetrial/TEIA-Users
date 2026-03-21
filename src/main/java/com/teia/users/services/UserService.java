@@ -28,6 +28,9 @@ public class UserService {
     @Autowired
     private ContactRepository contactRepository;
 
+    @Autowired
+    private CalInfoRepository calInfoRepository;
+
     public TeiaUser createUser(TeiaUser teiaUser) {
         if (teiaUser.getTwilioInfo() != null) {
             twilioInfoRepository.save(teiaUser.getTwilioInfo());
@@ -37,6 +40,9 @@ public class UserService {
         }
         if (teiaUser.getOpenAIInfo() != null) {
             openAIInfoRepository.save(teiaUser.getOpenAIInfo());
+        }
+        if (teiaUser.getCalInfo() != null) {
+            calInfoRepository.save(teiaUser.getCalInfo());
         }
 
         return userRepository.save(teiaUser);
@@ -65,6 +71,9 @@ public class UserService {
             }
             if (teiaUserDetails.getOpenAIInfo() != null) {
                 teiaUser.setOpenAIInfo(teiaUserDetails.getOpenAIInfo());
+            }
+            if (teiaUserDetails.getCalInfo() != null) {
+                teiaUser.setCalInfo(teiaUserDetails.getCalInfo());
             }
             if (teiaUserDetails.getContacts() != null) {
                 teiaUser.getContacts().clear();
