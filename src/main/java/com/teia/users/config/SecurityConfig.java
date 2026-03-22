@@ -2,7 +2,9 @@ package com.teia.users.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teia.users.dto.ErrorResponse;
+import com.teia.users.security.InternalRequestFilter;
 import com.teia.users.security.JwtAuthFilter;
+import com.teia.users.security.TwilioSignatureFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,10 +26,15 @@ import org.springframework.security.web.firewall.StrictHttpFirewall;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final InternalRequestFilter internalRequestFilter;
+    private final TwilioSignatureFilter twilioSignatureFilter;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, ObjectMapper objectMapper) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, InternalRequestFilter internalRequestFilter,
+                          TwilioSignatureFilter twilioSignatureFilter, ObjectMapper objectMapper) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.internalRequestFilter = internalRequestFilter;
+        this.twilioSignatureFilter = twilioSignatureFilter;
         this.objectMapper = objectMapper;
     }
 
@@ -47,6 +54,16 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/auth/**").permitAll()
 
+                // Twilio webhook endpoints (unauthenticated - Twilio cannot send auth headers)
+                // Security is provided by Twilio request validation and credit checking
+                .requestMatchers("/twilio/**").permitAll()
+
+                // Internal service-to-service endpoints (authenticated by InternalRequestFilter)
+                .requestMatchers("/internal/**").permitAll()
+
+                // Stripe webhook endpoint (unauthenticated - uses Stripe signature verification)
+                .requestMatchers("/billing/webhook").permitAll()
+
                 // Swagger/OpenAPI documentation
                 .requestMatchers(
                     "/swagger-ui.html",
@@ -62,8 +79,16 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
 
-            // Add JWT filter before UsernamePasswordAuthenticationFilter
+            // Add JWT filter before UsernamePasswordAuthenticationFilter first so that
+            // JwtAuthFilter has a known position in the chain (required by Spring Security 6
+            // before it can be used as a reference class in a subsequent addFilterBefore call).
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+
+            // Add InternalRequestFilter before JwtAuthFilter for /internal/** paths
+            .addFilterBefore(internalRequestFilter, JwtAuthFilter.class)
+
+            // Add TwilioSignatureFilter before JwtAuthFilter for /twilio/inbound/** paths
+            .addFilterBefore(twilioSignatureFilter, JwtAuthFilter.class)
 
             // Custom exception handling for 401 and 403 responses
             .exceptionHandling(exceptions -> exceptions

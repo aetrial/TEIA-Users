@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.teia.users.models.enums.Role;
 import lombok.Data;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -56,6 +57,9 @@ public class TeiaUser {
     @OneToMany(mappedBy = "teiaUser", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Contact> contacts;
+
+    @Column(name = "credit_balance", precision = 12, scale = 2)
+    private BigDecimal creditBalance = BigDecimal.ZERO;
 
     @Column(name = "create_date", nullable = false)
     private LocalDateTime createDate;

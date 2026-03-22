@@ -64,6 +64,11 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
@@ -119,6 +124,13 @@
 			<artifactId>itext-core</artifactId>
 			<version>8.0.4</version>
 			<type>pom</type>
+		</dependency>
+
+		<!-- Stripe Java SDK for payment processing -->
+		<dependency>
+			<groupId>com.stripe</groupId>
+			<artifactId>stripe-java</artifactId>
+			<version>24.0.0</version>
 		</dependency>
 
 	</dependencies>

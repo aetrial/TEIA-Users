@@ -2,7 +2,7 @@
 
 Complete API reference for the TEIA-users service. This service manages platform users and their third-party service credentials (OpenAI, ElevenLabs, Twilio, Cal.com).
 
-**Base URL:** `http://localhost:8080` (default)
+**Base URL:** `http://localhost:8099/teiaUsers` (default)
 
 **Total Endpoints:** 39 across 7 controllers
 
@@ -464,11 +464,11 @@ Standard HTTP error codes are used:
 Interactive API documentation is available at:
 
 ```
-http://localhost:8080/swagger-ui.html
+http://localhost:8099/teiaUsers/swagger-ui.html
 ```
 
 OpenAPI specification:
 
 ```
-http://localhost:8080/v3/api-docs
+http://localhost:8099/teiaUsers/api-docs
 ```
