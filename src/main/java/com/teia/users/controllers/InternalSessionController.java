@@ -1,5 +1,6 @@
 package com.teia.users.controllers;
 
+import com.teia.users.dto.AgentPromptContentResponse;
 import com.teia.users.dto.CreditCheckResponse;
 import com.teia.users.dto.SessionCompleteRequest;
 import com.teia.users.dto.SessionCompleteResponse;
@@ -10,6 +11,7 @@ import com.teia.users.models.UsageEvent;
 import com.teia.users.models.enums.UsageEventStatus;
 import com.teia.users.models.enums.UsageEventType;
 import com.teia.users.repositories.UserRepository;
+import com.teia.users.services.AgentPromptService;
 import com.teia.users.services.TwilioWebhookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -41,10 +43,12 @@ public class InternalSessionController {
 
     private final TwilioWebhookService webhookService;
     private final UserRepository userRepository;
+    private final AgentPromptService agentPromptService;
 
-    public InternalSessionController(TwilioWebhookService webhookService, UserRepository userRepository) {
+    public InternalSessionController(TwilioWebhookService webhookService, UserRepository userRepository, AgentPromptService agentPromptService) {
         this.webhookService = webhookService;
         this.userRepository = userRepository;
+        this.agentPromptService = agentPromptService;
     }
 
     /**
@@ -389,6 +393,55 @@ public class InternalSessionController {
                     log.warn("[InternalSession] Client not found for credit check: {}", clientId);
                     return ResponseEntity.status(404).body(Map.of(
                             "error", "Client not found",
+                            "clientId", clientId
+                    ));
+                });
+    }
+
+    /**
+     * Get the active agent prompt for a client.
+     */
+    @GetMapping("/clients/{clientId}/prompt")
+    @Operation(
+            summary = "Get active agent prompt for a client",
+            description = "TEIA Core calls this endpoint to retrieve the active system prompt for a client. " +
+                    "Requires HMAC-SHA256 authentication via X-Internal-Key, X-Timestamp, and X-Client-ID headers."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Active prompt returned",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = AgentPromptContentResponse.class),
+                            examples = @ExampleObject(
+                                    value = "{\"content\": \"You are a helpful assistant...\"}"
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "No active prompt found for client",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"No active prompt found\", \"clientId\": 123}")
+                    )
+            )
+    })
+    public ResponseEntity<?> getClientPrompt(
+            @Parameter(description = "Client ID", required = true, example = "123")
+            @PathVariable Long clientId) {
+        log.info("[InternalSession] Prompt fetch for client: {}", clientId);
+
+        return agentPromptService.getActivePromptContent(clientId)
+                .<ResponseEntity<?>>map(content -> {
+                    log.info("[InternalSession] Active prompt found for client: {}", clientId);
+                    return ResponseEntity.ok(AgentPromptContentResponse.builder().content(content).build());
+                })
+                .orElseGet(() -> {
+                    log.warn("[InternalSession] No active prompt for client: {}", clientId);
+                    return ResponseEntity.status(404).body(Map.of(
+                            "error", "No active prompt found",
                             "clientId", clientId
                     ));
                 });

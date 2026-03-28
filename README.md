@@ -148,8 +148,9 @@ Full API reference: **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)**
 | Operator | `/operator` | 4 | Client config management (OPERATOR/ADMIN only) |
 | Metrics | `/metrics` | 4 | Usage metrics (calls, messages, credits, over-time) |
 | Provider Metrics | `/metrics/providers` | 5 | Per-provider consumption (Twilio, OpenAI, ElevenLabs, Stripe) |
+| Agent Prompts | `/prompts` | 4 | Client bot system prompt versioning and rollback |
 
-**Total: 57 endpoints across 10 controllers**
+**Total: 61 endpoints across 11 controllers**
 
 ---
 
@@ -347,6 +348,65 @@ stripe trigger checkout.session.completed
 # 4. Verify credits were added
 curl -X GET http://localhost:8099/teiaUsers/billing/history \
   -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Agent Prompts API
+
+Clients manage the system prompt used by their AI bot. Each save creates a new immutable version; any version can be reactivated (rollback). TEIA Core fetches the active prompt at session start via an internal endpoint.
+
+### Endpoints (CLIENT role, own data only)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/prompts/active` | Return the currently active prompt. 404 if none set |
+| `GET` | `/prompts` | List all versions: id, version, createdAt, isActive, first 100 chars |
+| `POST` | `/prompts` | Create new version (auto-increments, becomes active). Validates: not empty, max 4000 chars |
+| `POST` | `/prompts/{id}/activate` | Roll back to a previous version. 404 if not found or belongs to another client |
+
+### Internal Endpoint (TEIA Core, HMAC auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/internal/clients/{clientId}/prompt` | Returns `{ "content": "..." }` for active prompt. 404 if none |
+
+### Business Rules
+- Version numbers are **per-client** and auto-increment (client A: v1, v2, v3 — independent of other clients)
+- Creating a prompt always deactivates all previous versions for that client
+- Activating a previous prompt deactivates all others (rollback)
+- A CLIENT can only access their own prompts — requests for another client's data return 404
+
+### Example Requests
+
+```bash
+# Create first prompt (becomes v1, active)
+curl -X POST http://localhost:8099/teiaUsers/prompts \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "You are a helpful scheduling assistant. Be concise and friendly."}'
+
+# List all versions
+curl -X GET http://localhost:8099/teiaUsers/prompts \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get the currently active prompt
+curl -X GET http://localhost:8099/teiaUsers/prompts/active \
+  -H "Authorization: Bearer $TOKEN"
+
+# Roll back to a previous version
+curl -X POST http://localhost:8099/teiaUsers/prompts/1/activate \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Example Response — GET /prompts
+
+```json
+[
+  { "id": 3, "version": 3, "isActive": true,  "createdAt": "2026-03-28T10:00:00Z", "preview": "You are a helpful scheduling assis..." },
+  { "id": 2, "version": 2, "isActive": false, "createdAt": "2026-03-27T09:00:00Z", "preview": "You are a concise assistant that h..." },
+  { "id": 1, "version": 1, "isActive": false, "createdAt": "2026-03-26T08:00:00Z", "preview": "You are a helpful scheduling assis..." }
+]
 ```
 
 ---
