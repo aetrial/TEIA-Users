@@ -151,7 +151,12 @@ public class InternalSessionController {
             UsageEvent usageEvent = webhookService.reconcileSession(
                     request.getSessionId(),
                     request.getActualDurationSeconds(),
-                    status
+                    status,
+                    request.getTwilioCallDurationSeconds(),
+                    request.getTwilioSmsCount(),
+                    request.getOpenAiInputTokens(),
+                    request.getOpenAiOutputTokens(),
+                    request.getElevenLabsCharacters()
             );
 
             // Get updated client balance

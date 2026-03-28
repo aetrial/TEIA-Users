@@ -58,6 +58,9 @@ public class TeiaUser {
     @JsonManagedReference
     private List<Contact> contacts;
 
+    @Column(name = "stripe_customer_id", length = 255)
+    private String stripeCustomerId;
+
     @Column(name = "credit_balance", precision = 12, scale = 2)
     private BigDecimal creditBalance = BigDecimal.ZERO;
 

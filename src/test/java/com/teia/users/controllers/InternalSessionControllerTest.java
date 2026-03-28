@@ -101,7 +101,8 @@ class InternalSessionControllerTest {
             UsageEvent usageEvent = new UsageEvent(1L, UsageEventType.CALL, "sess_short123", new BigDecimal("5.00"));
             usageEvent.complete(120, new BigDecimal("2.00")); // 2 minutes = 2 credits
 
-            when(webhookService.reconcileSession(eq("sess_short123"), eq(120), eq(UsageEventStatus.COMPLETED)))
+            when(webhookService.reconcileSession(eq("sess_short123"), eq(120), eq(UsageEventStatus.COMPLETED),
+                    isNull(), isNull(), isNull(), isNull(), isNull()))
                     .thenReturn(usageEvent);
             when(userRepository.findById(1L)).thenReturn(Optional.of(testClient));
 
@@ -131,7 +132,7 @@ class InternalSessionControllerTest {
                     .andExpect(jsonPath("$.creditsUsed").value(2.00))
                     .andExpect(jsonPath("$.creditsDifference").value(3.00)); // 5 - 2 = 3 refunded
 
-            verify(webhookService).reconcileSession("sess_short123", 120, UsageEventStatus.COMPLETED);
+            verify(webhookService).reconcileSession("sess_short123", 120, UsageEventStatus.COMPLETED, null, null, null, null, null);
         }
 
         @Test
@@ -141,7 +142,8 @@ class InternalSessionControllerTest {
             UsageEvent usageEvent = new UsageEvent(1L, UsageEventType.CALL, "sess_long123", new BigDecimal("5.00"));
             usageEvent.complete(600, new BigDecimal("10.00")); // 10 minutes = 10 credits
 
-            when(webhookService.reconcileSession(eq("sess_long123"), eq(600), eq(UsageEventStatus.COMPLETED)))
+            when(webhookService.reconcileSession(eq("sess_long123"), eq(600), eq(UsageEventStatus.COMPLETED),
+                    isNull(), isNull(), isNull(), isNull(), isNull()))
                     .thenReturn(usageEvent);
             when(userRepository.findById(1L)).thenReturn(Optional.of(testClient));
 
@@ -169,7 +171,7 @@ class InternalSessionControllerTest {
                     .andExpect(jsonPath("$.creditsUsed").value(10.00))
                     .andExpect(jsonPath("$.creditsDifference").value(-5.00)); // 5 - 10 = -5 additional charge
 
-            verify(webhookService).reconcileSession("sess_long123", 600, UsageEventStatus.COMPLETED);
+            verify(webhookService).reconcileSession("sess_long123", 600, UsageEventStatus.COMPLETED, null, null, null, null, null);
         }
 
         @Test
@@ -180,7 +182,8 @@ class InternalSessionControllerTest {
             usageEvent.fail();
             usageEvent.setCreditsUsed(BigDecimal.ZERO);
 
-            when(webhookService.reconcileSession(eq("sess_failed123"), isNull(), eq(UsageEventStatus.FAILED)))
+            when(webhookService.reconcileSession(eq("sess_failed123"), isNull(), eq(UsageEventStatus.FAILED),
+                    isNull(), isNull(), isNull(), isNull(), isNull()))
                     .thenReturn(usageEvent);
             when(userRepository.findById(1L)).thenReturn(Optional.of(testClient));
 
@@ -208,14 +211,14 @@ class InternalSessionControllerTest {
                     .andExpect(jsonPath("$.creditsUsed").value(0))
                     .andExpect(jsonPath("$.creditsDifference").value(5.00)); // Full refund
 
-            verify(webhookService).reconcileSession("sess_failed123", null, UsageEventStatus.FAILED);
+            verify(webhookService).reconcileSession("sess_failed123", null, UsageEventStatus.FAILED, null, null, null, null, null);
         }
 
         @Test
         @DisplayName("Should return 404 for unknown session")
         void shouldReturn404ForUnknownSession() throws Exception {
             // Given: Session not found
-            when(webhookService.reconcileSession(eq("sess_unknown"), any(), any()))
+            when(webhookService.reconcileSession(eq("sess_unknown"), any(), any(), any(), any(), any(), any(), any()))
                     .thenThrow(new TwilioWebhookService.SessionNotFoundException("Session not found: sess_unknown"));
 
             SessionCompleteRequest request = new SessionCompleteRequest();
@@ -263,7 +266,7 @@ class InternalSessionControllerTest {
                     // Then: 401 is returned
                     .andExpect(status().isUnauthorized());
 
-            verify(webhookService, never()).reconcileSession(any(), any(), any());
+            verify(webhookService, never()).reconcileSession(any(), any(), any(), any(), any(), any(), any(), any());
         }
 
         @Test
@@ -289,7 +292,7 @@ class InternalSessionControllerTest {
                     // Then: 401 is returned
                     .andExpect(status().isUnauthorized());
 
-            verify(webhookService, never()).reconcileSession(any(), any(), any());
+            verify(webhookService, never()).reconcileSession(any(), any(), any(), any(), any(), any(), any(), any());
         }
 
         @Test
@@ -317,7 +320,7 @@ class InternalSessionControllerTest {
                     // Then: 401 is returned
                     .andExpect(status().isUnauthorized());
 
-            verify(webhookService, never()).reconcileSession(any(), any(), any());
+            verify(webhookService, never()).reconcileSession(any(), any(), any(), any(), any(), any(), any(), any());
         }
     }
 

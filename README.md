@@ -146,8 +146,10 @@ Full API reference: **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)**
 | Cal.com | `/cal-info` | 5 | Calendar integration |
 | Threads | `/threads` | 6 | Conversation thread tracking |
 | Operator | `/operator` | 4 | Client config management (OPERATOR/ADMIN only) |
+| Metrics | `/metrics` | 4 | Usage metrics (calls, messages, credits, over-time) |
+| Provider Metrics | `/metrics/providers` | 5 | Per-provider consumption (Twilio, OpenAI, ElevenLabs, Stripe) |
 
-**Total: 43 endpoints across 8 controllers**
+**Total: 57 endpoints across 10 controllers**
 
 ---
 
@@ -349,6 +351,70 @@ curl -X GET http://localhost:8099/teiaUsers/billing/history \
 
 ---
 
+## Metrics API
+
+Clients can query their own usage data. OPERATOR/ADMIN roles can view any client's data by adding `?clientId=<uuid>`.
+
+### Usage Metrics Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/metrics/summary` | JWT | Total calls, messages, credits used, current balance, active sessions |
+| `GET` | `/metrics/calls?from=&to=` | JWT | Per-call breakdown with duration, credits, status |
+| `GET` | `/metrics/messages?from=&to=` | JWT | Per-message breakdown with credits and status |
+| `GET` | `/metrics/usage-over-time?period=day\|week\|month` | JWT | Credits consumed grouped by time period |
+
+### Provider Metrics Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/metrics/providers/summary?from=&to=` | JWT | Aggregated totals across Twilio, OpenAI, ElevenLabs, Stripe |
+| `GET` | `/metrics/providers/twilio?from=&to=` | JWT | Per-session call minutes and SMS count |
+| `GET` | `/metrics/providers/openai?from=&to=` | JWT | Per-session input/output token counts |
+| `GET` | `/metrics/providers/elevenlabs?from=&to=` | JWT | Per-session characters synthesized |
+| `GET` | `/metrics/providers/stripe` | JWT | Payment history merged with Stripe PaymentIntents |
+
+### Access Control
+
+| Role | Behavior |
+|------|----------|
+| `CLIENT` | Always sees only their own data. `?clientId=` for another client → **403** |
+| `OPERATOR` | Can pass `?clientId=<uuid>` to view any client's data |
+| `ADMIN` | Same as OPERATOR |
+
+### Provider Summary Response
+
+```json
+{
+  "twilio":     { "totalCallMinutes": 12.5, "totalSmsSent": 3 },
+  "openAi":     { "totalInputTokens": 48200, "totalOutputTokens": 12100 },
+  "elevenLabs": { "totalCharacters": 98400 },
+  "stripe":     { "totalPaid": 4000, "currency": "usd", "lastPaymentAt": "2026-03-01T10:00:00Z" }
+}
+```
+
+### Example Requests
+
+```bash
+# Get your own metrics summary
+curl -X GET http://localhost:8099/teiaUsers/metrics/summary \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get Twilio usage for a date range
+curl -X GET "http://localhost:8099/teiaUsers/metrics/providers/twilio?from=2026-03-01&to=2026-03-31" \
+  -H "Authorization: Bearer $TOKEN"
+
+# OPERATOR viewing a client's provider summary
+curl -X GET "http://localhost:8099/teiaUsers/metrics/providers/summary?clientId=abc-123" \
+  -H "Authorization: Bearer $OPERATOR_TOKEN"
+
+# View payment history
+curl -X GET http://localhost:8099/teiaUsers/metrics/providers/stripe \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
 ### Database Migration
 
 The Operator API requires the following schema changes:
@@ -401,7 +467,7 @@ This service is the **traffic controller and credit gatekeeper**. TEIA Core (`..
 - `/internal/message` - Forward inbound message with credentials
 - `/internal/outbound-ws` - Forward outbound WhatsApp template
 - `/internal/outbound-call-np` - Forward outbound call request
-- `/internal/session/complete` - Receive session completion callback
+- `/internal/session/complete` - Receive session completion callback (includes provider telemetry: `twilioCallDurationSeconds`, `twilioSmsCount`, `openAiInputTokens`, `openAiOutputTokens`, `elevenLabsCharacters`)
 - `/internal/usage` - Receive direct usage report (deducts credits without prior reservation)
 - `/internal/clients/{clientId}/credits` - Credit balance check
 

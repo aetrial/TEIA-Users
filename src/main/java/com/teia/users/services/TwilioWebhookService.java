@@ -210,14 +210,23 @@ public class TwilioWebhookService {
     /**
      * Reconciles credits after a session completes.
      * Refunds unused credits or charges additional credits based on actual usage.
+     * Also persists provider-level telemetry (Twilio, OpenAI, ElevenLabs) when supplied.
      *
-     * @param sessionId             The session ID
-     * @param actualDurationSeconds The actual duration in seconds (null for messages)
-     * @param status                The final status (COMPLETED or FAILED)
+     * @param sessionId                  The session ID
+     * @param actualDurationSeconds      The actual duration in seconds (null for messages)
+     * @param status                     The final status (COMPLETED or FAILED)
+     * @param twilioCallDurationSeconds  Twilio call duration reported by TEIA Core (nullable)
+     * @param twilioSmsCount             Twilio SMS count (nullable)
+     * @param openAiInputTokens          OpenAI input token count (nullable)
+     * @param openAiOutputTokens         OpenAI output token count (nullable)
+     * @param elevenLabsCharacters       ElevenLabs character count (nullable)
      * @return The updated UsageEvent
      */
     @Transactional
-    public UsageEvent reconcileSession(String sessionId, Integer actualDurationSeconds, UsageEventStatus status) {
+    public UsageEvent reconcileSession(String sessionId, Integer actualDurationSeconds, UsageEventStatus status,
+                                       Integer twilioCallDurationSeconds, Integer twilioSmsCount,
+                                       Integer openAiInputTokens, Integer openAiOutputTokens,
+                                       Integer elevenLabsCharacters) {
         UsageEvent usageEvent = usageEventRepository.findBySessionId(sessionId)
                 .orElseThrow(() -> new SessionNotFoundException("Session not found: " + sessionId));
 
@@ -264,6 +273,13 @@ public class TwilioWebhookService {
             userRepository.save(client);
             log.info("[TwilioWebhookService] Charged additional {} credits to client {}", additionalCharge, client.getId());
         }
+
+        // Persist provider telemetry
+        if (twilioCallDurationSeconds != null) usageEvent.setTwilioCallDurationSeconds(twilioCallDurationSeconds);
+        if (twilioSmsCount != null) usageEvent.setTwilioSmsCount(twilioSmsCount);
+        if (openAiInputTokens != null) usageEvent.setOpenAiInputTokens(openAiInputTokens);
+        if (openAiOutputTokens != null) usageEvent.setOpenAiOutputTokens(openAiOutputTokens);
+        if (elevenLabsCharacters != null) usageEvent.setElevenLabsCharacters(elevenLabsCharacters);
 
         // Update usage event
         if (status == UsageEventStatus.COMPLETED) {

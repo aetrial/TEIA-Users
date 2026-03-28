@@ -54,6 +54,22 @@ public class UsageEvent {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    // Provider telemetry
+    @Column(name = "twilio_call_duration_seconds")
+    private Integer twilioCallDurationSeconds;
+
+    @Column(name = "twilio_sms_count")
+    private Integer twilioSmsCount;
+
+    @Column(name = "openai_input_tokens")
+    private Integer openAiInputTokens;
+
+    @Column(name = "openai_output_tokens")
+    private Integer openAiOutputTokens;
+
+    @Column(name = "elevenlabs_characters")
+    private Integer elevenLabsCharacters;
+
     public UsageEvent() {
         this.createdAt = LocalDateTime.now();
         this.status = UsageEventStatus.STARTED;

@@ -258,7 +258,7 @@ class TwilioWebhookServiceTest {
             when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             // 2 minutes = 2 credits, reserved 5, refund 3
-            UsageEvent result = webhookService.reconcileSession("sess_test", 120, UsageEventStatus.COMPLETED);
+            UsageEvent result = webhookService.reconcileSession("sess_test", 120, UsageEventStatus.COMPLETED, null, null, null, null, null);
 
             assertEquals(UsageEventStatus.COMPLETED, result.getStatus());
             assertEquals(new BigDecimal("2.00"), result.getCreditsUsed());
@@ -284,7 +284,7 @@ class TwilioWebhookServiceTest {
             when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             // 10 minutes = 10 credits, reserved 5, need additional 5
-            UsageEvent result = webhookService.reconcileSession("sess_test", 600, UsageEventStatus.COMPLETED);
+            UsageEvent result = webhookService.reconcileSession("sess_test", 600, UsageEventStatus.COMPLETED, null, null, null, null, null);
 
             assertEquals(new BigDecimal("10.00"), result.getCreditsUsed());
             assertEquals(new BigDecimal("90.00"), testClient.getCreditBalance()); // 95 - 5 additional
@@ -308,7 +308,7 @@ class TwilioWebhookServiceTest {
             when(creditTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
             when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-            UsageEvent result = webhookService.reconcileSession("sess_test", null, UsageEventStatus.FAILED);
+            UsageEvent result = webhookService.reconcileSession("sess_test", null, UsageEventStatus.FAILED, null, null, null, null, null);
 
             assertEquals(UsageEventStatus.FAILED, result.getStatus());
             assertEquals(BigDecimal.ZERO, result.getCreditsUsed());
@@ -321,7 +321,7 @@ class TwilioWebhookServiceTest {
             when(usageEventRepository.findBySessionId("sess_unknown")).thenReturn(Optional.empty());
 
             assertThrows(TwilioWebhookService.SessionNotFoundException.class, () -> {
-                webhookService.reconcileSession("sess_unknown", 60, UsageEventStatus.COMPLETED);
+                webhookService.reconcileSession("sess_unknown", 60, UsageEventStatus.COMPLETED, null, null, null, null, null);
             });
         }
 
@@ -333,7 +333,7 @@ class TwilioWebhookServiceTest {
 
             when(usageEventRepository.findBySessionId("sess_test")).thenReturn(Optional.of(session));
 
-            UsageEvent result = webhookService.reconcileSession("sess_test", 120, UsageEventStatus.COMPLETED);
+            UsageEvent result = webhookService.reconcileSession("sess_test", 120, UsageEventStatus.COMPLETED, null, null, null, null, null);
 
             // Should return existing state without modification
             assertEquals(UsageEventStatus.COMPLETED, result.getStatus());
